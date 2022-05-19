@@ -54,7 +54,7 @@ exports.signup=catchAsync(async(req,res,next)=>{
     if(error) return res.status(201).send(error.details[0].message);
 
     let user = await User.findOne({email:req.body.email});
-    if(user) return res.status(201).send("L'utilisateur existe déjà...");
+    if(user) return res.status(201).send("L'utilisateur existe...");
     user= new User(req.body);
 
     const newUser = await user.save();
