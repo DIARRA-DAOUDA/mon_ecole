@@ -20,7 +20,7 @@ const createSendToken=(user,statusCode,res)=>{
 
     //remove the password from output
     user.password=undefined;
-    user.passwordConfirm=undefined;
+
 
     res.status(statusCode).json({
         status: 'success',
@@ -39,7 +39,7 @@ const signToken = id => {
 }
 exports.signup=catchAsync(async(req,res,next)=>{
 
-    const schema =Joi.object({
+     const schema =Joi.object({
         civilite:Joi.string().required(),
         nom:Joi.string().min(3).max(30).required(),
         prenom:Joi.string().min(2).max(80).required(),
@@ -54,10 +54,32 @@ exports.signup=catchAsync(async(req,res,next)=>{
     if(error) return res.status(201).send(error.details[0].message);
 
     let user = await User.findOne({email:req.body.email});
-    if(user) return res.status(201).send("User already exist...");
+    if(user) return res.status(201).send("L'utilisateur existe déjà...");
     user= new User(req.body);
 
     const newUser = await user.save();
-
     createSendToken(newUser,201,res);
+
+
 })
+
+exports.login = catchAsync(async (req, res, next) => {
+    const { email, password } = req.body;
+    const schema =Joi.object({
+        email:Joi.string().min(3).max(200).required().email(),
+        password:Joi.string().min(6).max(200).required()
+    });
+    const {error} = schema.validate(req.body);
+
+    if(error) return res.status(201).send(error.details[0].message);
+
+    let user = await User.findOne({email:req.body.email}).select('+password');
+    const correct = await user.correctPassword(password, user.password);
+    if (!user || !correct) {
+        return res.status(201).send('Incorrect email or password')
+    }
+
+    //3)if everything ok , send token to client
+    createSendToken(user,200,res);
+
+});

@@ -6,6 +6,7 @@ const helmet=require('helmet');
 const mongoSanitize=require('express-mongo-sanitize');
 const xss=require('xss-clean');
 const hpp=require('hpp');
+const globalErrorHandler=require('./controllers/errorController');
 
 const userRouter=require('./routes/userRoutes');
 
@@ -33,7 +34,7 @@ const limiter=rateLimit({
 app.use('/api',limiter); //permit to limit api request in the application
 
 //Body parser, reading data from body into req.body
-app.use(express.json({limit:'10kb'}));
+//app.use(express.json({limit:'10kb'}));
 
 //Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
@@ -65,6 +66,13 @@ app.use((req, res, next) => {
 
 // 3) ROUTES
 app.use('/api/v1/users',userRouter);
+
+//never call at the top of the route everyday on the bottom
+app.all('*',(req,res,next)=>{
+    next(new AppError(`Can't find ${req.originalUrl} on this servers 🤓 !`,404));
+});
+
+app.use(globalErrorHandler);
 
 
 module.exports=app

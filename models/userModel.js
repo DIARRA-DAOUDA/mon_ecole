@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
     civilite: {
@@ -26,7 +27,8 @@ const userSchema = new mongoose.Schema({
         required: true,
         minlength: 3,
         maxlength: 200,
-        unique: true
+        unique: true,
+        validate: [validator.isEmail, 'Veuillez fournir un e-mail valide']
     },
     sexe: {
         type: String,
@@ -47,6 +49,14 @@ const userSchema = new mongoose.Schema({
     passwordConfirm: {
         type: String,
         required:true,
+        validate: {
+            //This only works on CREATE AND SAVE !!!
+            validator: function (el) {
+                return el === this.password;
+            },
+            message: 'Les mots de passe ne sont pas identiques!'
+
+        }
     },
     passwordChangedAt: Date,
     passwordResetToken: String,
@@ -67,6 +77,28 @@ userSchema.pre('save', async function (next) {
     this.passwordConfirm = undefined;
     next();
 });
+
+userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
+    return await bcrypt.compare(candidatePassword, userPassword);
+}
+
+userSchema.methods.createPasswordResetToken = function () {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    this.passwordResetToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+
+    this.passwordResetExpires=Date.now()+10*60*1000;
+    //S console.log({resetToken},this.passwordResetToken);
+    return resetToken;
+}
+
+userSchema.pre(/^find/,function(next){
+    this.find({active:{$ne:false}});
+    next();
+})
+
 
 const User = mongoose.model("User", userSchema);
 exports.User = User;
