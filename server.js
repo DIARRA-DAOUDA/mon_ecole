@@ -18,3 +18,11 @@ const server=app.listen(port,()=>{
     console.log(`Le serveur est lancé sur le port ${port}`)
 })
 
+//Detect all problem in apps
+process.on('unhandledRejection',err=>{
+    console.log(err.name,err.message);
+    console.log('UNHANDLER REJECTION! 🧯 Shutting down...')
+    server.close(()=>{
+        process.exit(1); //met fin au programme
+    });
+});
